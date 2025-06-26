@@ -1,0 +1,89 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Student {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+type Teacher {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+type Score {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+type Attendance {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+type Query {
+  student(id: Int!): Student!
+  teacher(id: Int!): Teacher!
+  score(id: Int!): Score!
+  attendance(id: Int!): Attendance!
+}
+
+type Mutation {
+  createStudent(createStudentInput: CreateStudentInput!): Student!
+  updateStudent(updateStudentInput: UpdateStudentInput!): Student!
+  removeStudent(id: Int!): Student!
+  createTeacher(createTeacherInput: CreateTeacherInput!): Teacher!
+  updateTeacher(updateTeacherInput: UpdateTeacherInput!): Teacher!
+  removeTeacher(id: Int!): Teacher!
+  createScore(createScoreInput: CreateScoreInput!): Score!
+  updateScore(updateScoreInput: UpdateScoreInput!): Score!
+  removeScore(id: Int!): Score!
+  createAttendance(createAttendanceInput: CreateAttendanceInput!): Attendance!
+  updateAttendance(updateAttendanceInput: UpdateAttendanceInput!): Attendance!
+  removeAttendance(id: Int!): Attendance!
+}
+
+input CreateStudentInput {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+input UpdateStudentInput {
+  """Example field (placeholder)"""
+  exampleField: Int
+  id: Int!
+}
+
+input CreateTeacherInput {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+input UpdateTeacherInput {
+  """Example field (placeholder)"""
+  exampleField: Int
+  id: Int!
+}
+
+input CreateScoreInput {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+input UpdateScoreInput {
+  """Example field (placeholder)"""
+  exampleField: Int
+  id: Int!
+}
+
+input CreateAttendanceInput {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+input UpdateAttendanceInput {
+  """Example field (placeholder)"""
+  exampleField: Int
+  id: Int!
+}

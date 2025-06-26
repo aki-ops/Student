@@ -1,0 +1,158 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type User {
+  id: ID!
+  username: String!
+  fullName: String!
+  password: String!
+  role: String!
+}
+
+type LoginResponse {
+  access_token: String!
+}
+
+type Teacher {
+  _id: ID!
+  fullName: String!
+  birthDate: String!
+}
+
+type Score {
+  id: ID!
+  studentId: String!
+  classId: String!
+  subject: String!
+  score: Float!
+}
+
+type Class {
+  id: ID!
+  className: String!
+  teacherId: User!
+  studentIds: [User!]!
+}
+
+type AttendanceRecord {
+  studentId: String!
+  status: AttendanceStatus!
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+type Attendance {
+  id: ID!
+  classId: String!
+  date: DateTime!
+  records: [AttendanceRecord!]!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input AttendanceRecordInput {
+  studentId: String!
+  status: AttendanceStatus!
+}
+
+type Query {
+  find: User!
+  score(id: Int!): Score!
+  class(id: Int!): Class!
+  attendance: [Attendance!]!
+  getAttendanceByClass(classId: String!): [Attendance!]!
+  getAttendanceByStudent: [Attendance!]!
+  current_User: String!
+  findAllUser: User!
+  findStudent: String!
+  findTeacher: String!
+}
+
+type Mutation {
+  createStudent(createStudentInput: CreateTeacherWithUserInput!): Teacher!
+  createScore(createScoreInput: CreateScoreInput!): Score!
+  updateScore(updateScoreInput: UpdateScoreInput!): Score!
+  removeScore(id: Int!): Score!
+  createClass(createClassInput: CreateClassInput!): Class!
+  addStudentToClass(classId: String!, studentId: String!): Class!
+  updateClass(updateClassInput: UpdateClassInput!): Class!
+  removeClass(id: Int!): Class!
+  createAttendance(input: CreateAttendanceInput!): Attendance!
+  updateAttendance(updateAttendanceInput: UpdateAttendanceInput!): Attendance!
+  removeAttendance(id: Int!): Attendance!
+  SignIn(input: LoginInput!): LoginResponse!
+  CreateUser(input: CreateUserInput!): User!
+}
+
+input CreateTeacherWithUserInput {
+  fullName: String!
+  birthDate: String!
+  username: String!
+  password: String!
+}
+
+input CreateScoreInput {
+  studentId: String!
+  classId: String!
+  subject: String!
+  score: Float!
+}
+
+input UpdateScoreInput {
+  studentId: String
+  classId: String
+  subject: String
+  score: Float
+  id: Int!
+}
+
+input CreateClassInput {
+  className: String!
+  subject: String!
+  teacherId: String!
+}
+
+input UpdateClassInput {
+  className: String
+  subject: String
+  teacherId: String
+  id: Int!
+}
+
+input CreateAttendanceInput {
+  classId: String!
+  date: DateTime!
+  records: [AttendanceRecordInput!]!
+}
+
+input UpdateAttendanceInput {
+  id: Int!
+}
+
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+input CreateUserInput {
+  fullName: String!
+  username: String!
+  password: String!
+  role: UserRole!
+}
+
+"""User roles in the system"""
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
