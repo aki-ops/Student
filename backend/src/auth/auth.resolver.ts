@@ -15,11 +15,15 @@ export class AuthResolver {
       return this.authService.signIn(input.username, input.password);
   }
 
-  @Query(() => String)
+  @Query(() => User)
   @UseGuards(GqlAuthGuard)
-    async current_User(@CurrentUser() user){
-      return user.role;
+  async current_User(@CurrentUser() user: User) {
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
     }
+  }
 
   @Mutation(() => User)
   async CreateUser(@Args('input') input: CreateUserInput): Promise<User> {

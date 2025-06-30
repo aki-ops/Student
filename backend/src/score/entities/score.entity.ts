@@ -22,7 +22,7 @@ export class Score extends Document {
   subject: string;
 
   @Prop()
-  @Field(() => Number)
+  @Field(() => Int)
   score: number;
 }
 

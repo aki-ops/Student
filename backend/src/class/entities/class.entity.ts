@@ -12,16 +12,22 @@ export class Class extends Document {
   declare id: string;
 
   @Prop()
+  @Field(() => String)
+  subject: string;
+
+  @Prop()
   @Field()
   className: string;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
-  @Field(() => User)
-  teacherId: User;
+    // ✅ Không cần ref
+  @Prop()
+  @Field(() => ID) // hoặc () => String cũng được
+  teacherId: string;
 
-  @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'User' })
-  @Field(() => [User])
-  studentIds: User[];
+  @Prop({ type: [String] })
+  @Field(() => [ID]) // hoặc [String]
+  studentIds: string[];
+  
 }
 
 

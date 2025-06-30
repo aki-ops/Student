@@ -25,14 +25,15 @@ type Score {
   studentId: String!
   classId: String!
   subject: String!
-  score: Float!
+  score: Int!
 }
 
 type Class {
   id: ID!
+  subject: String!
   className: String!
-  teacherId: User!
-  studentIds: [User!]!
+  teacherId: ID!
+  studentIds: [ID!]!
 }
 
 type AttendanceRecord {
@@ -71,7 +72,7 @@ type Query {
   attendance: [Attendance!]!
   getAttendanceByClass(classId: String!): [Attendance!]!
   getAttendanceByStudent: [Attendance!]!
-  current_User: String!
+  current_User: User!
   findAllUser: User!
   findStudent: String!
   findTeacher: String!

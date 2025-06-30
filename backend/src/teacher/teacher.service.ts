@@ -29,6 +29,7 @@ export class TeacherService {
     await this.UsersService.createUser({
       username: input.username,
       password: input.password, // should be hashed before saving
+      fullName: input.fullName,
       role: UserRole.TEACHER,
     });
 

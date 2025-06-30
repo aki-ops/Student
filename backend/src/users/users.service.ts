@@ -20,6 +20,7 @@ export class UsersService {
 
   // ➕ Tạo user khi tạo student/teacher
   async createUser(data: {
+    fullName: string;
     username: string;
     password: string; // đã hash
     role: UserRole;
