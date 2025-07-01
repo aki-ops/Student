@@ -1,26 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { CreateTeacherWithUserInput } from './dto/create-teacher.input';
 import { UsersService } from '../users/users.service';
-import { Teacher } from './entities/teacher.entity';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { UserRole } from 'common/enums/user-role.enum';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class TeacherService {
 
   constructor(
-      @InjectModel(Teacher.name)
-      private readonly teacherModel: Model<Teacher>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
 
       private readonly UsersService: UsersService,
     ) { }
 
 
   // src/student/student.service.ts
-  async createTeacherWithUser(input: CreateTeacherWithUserInput): Promise<Teacher> {
+  async createTeacherWithUser(input: CreateTeacherWithUserInput): Promise<User> {
     // 1. Create student first
-    const teacher = new this.teacherModel({
+    const teacher = new this.userModel({
       fullName: input.fullName,
       birthDate: input.birthDate,
     });

@@ -18,6 +18,11 @@ export class ScoreResolver {
     return this.scoreService.findAll();
   }
 
+  @Query(() => [Score], { name: 'getAllScores' })
+  getAllScores() {
+    return this.scoreService.findAll();
+  }
+
   @Query(() => Score, { name: 'score' })
   findOne(@Args('id', { type: () => Int }) id: number) {
     return this.scoreService.findOne(id);

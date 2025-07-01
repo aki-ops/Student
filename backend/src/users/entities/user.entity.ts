@@ -14,9 +14,9 @@ export class User extends Document {
   @Field()
   username: string;
   
-  @Prop({ required: true })
-  @Field()
-  fullName: string;
+  @Prop({ required: false })
+  @Field({ nullable: true })
+  fullName?: string;
 
   @Prop({ required: true })
   @Field()
@@ -25,6 +25,10 @@ export class User extends Document {
   @Prop({ enum: UserRole, required: true })
   @Field()
   role: UserRole;
+
+  @Prop({ type: [{ type: 'ObjectId', ref: 'Class' }] })
+  @Field(() => [ID])
+  classes: string[];
 
 }
 

@@ -19,13 +19,20 @@ export class Class extends Document {
   @Field()
   className: string;
 
-    // ✅ Không cần ref
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  @Field(() => User, { nullable: true })
+  teacher: User;
+
   @Prop()
-  @Field(() => ID) // hoặc () => String cũng được
+  @Field(() => ID)
   teacherId: string;
 
+  @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'User' })
+  @Field(() => [User], { nullable: true })
+  students: User[];
+
   @Prop({ type: [String] })
-  @Field(() => [ID]) // hoặc [String]
+  @Field(() => [ID])
   studentIds: string[];
   
 }

@@ -13,9 +13,9 @@ import { Class } from '../class/entities/class.entity';
 export class ScoreService {
 
   constructor(
-    @InjectModel('Class') private readonly scoreModel: Model<Score>,
+    @InjectModel('Score') private readonly scoreModel: Model<Score>,
     @InjectModel('User') private readonly userModel: Model<User>,
-    @InjectModel('Class') private readonly classModel: Model<Class> // Assuming User model is defined elsewhere
+    @InjectModel('Class') private readonly classModel: Model<Class>
   ) { }
 
   async create(createScoreInput: CreateScoreInput) {
@@ -32,8 +32,6 @@ export class ScoreService {
   async findByStudent(studentId: string): Promise<Score[]> {
     return this.scoreModel
       .find({ studentId })
-      .populate('studentId')
-      .populate('classId')
       .exec();
   }
 
@@ -41,17 +39,14 @@ export class ScoreService {
   async findByClass(classId: string): Promise<Score[]> {
     return this.scoreModel
       .find({ classId })
-      .populate('studentId')
-      .populate('classId')
       .exec();
   }
 
   @Roles('ADMIN', 'TEACHER')
   async findAll(): Promise<Score[]> {
+    // Temporarily disable populate to fix the error
     return this.scoreModel
       .find()
-      .populate('studentId')
-      .populate('classId')
       .exec();
   }
 

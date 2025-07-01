@@ -14,6 +14,7 @@ import { join } from 'path';
 import { AdminModule } from './admin/admin.module';
 import { ClassModule } from './class/class.module';
 import { ConfigModule } from '@nestjs/config';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { ConfigModule } from '@nestjs/config';
     AuthModule,
     UsersModule,
     AdminModule,
-    ClassModule
+    ClassModule,
+    NotificationModule
   ],
   controllers: [AppController],
   providers: [AppService],

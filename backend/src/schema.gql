@@ -5,19 +5,14 @@
 type User {
   id: ID!
   username: String!
-  fullName: String!
+  fullName: String
   password: String!
   role: String!
+  classes: [ID!]!
 }
 
 type LoginResponse {
   access_token: String!
-}
-
-type Teacher {
-  _id: ID!
-  fullName: String!
-  birthDate: String!
 }
 
 type Score {
@@ -32,7 +27,9 @@ type Class {
   id: ID!
   subject: String!
   className: String!
+  teacher: User
   teacherId: ID!
+  students: [User!]
   studentIds: [ID!]!
 }
 
@@ -60,6 +57,14 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type Notification {
+  _id: ID!
+  message: String!
+  sender: ID!
+  recipients: [ID!]!
+  createdAt: DateTime!
+}
+
 input AttendanceRecordInput {
   studentId: String!
   status: AttendanceStatus!
@@ -67,8 +72,14 @@ input AttendanceRecordInput {
 
 type Query {
   find: User!
+  findAllUsers: [User!]!
+  findById(id: String!): User!
   score(id: Int!): Score!
-  class(id: Int!): Class!
+  getAllScores: [Score!]!
+  class: [Class!]!
+  getAllClasses: [Class!]!
+  getMyClasses: [Class!]!
+  getClassById(id: String!): Class!
   attendance: [Attendance!]!
   getAttendanceByClass(classId: String!): [Attendance!]!
   getAttendanceByStudent: [Attendance!]!
@@ -76,29 +87,41 @@ type Query {
   findAllUser: User!
   findStudent: String!
   findTeacher: String!
+  getMyNotifications: [Notification!]!
 }
 
 type Mutation {
-  createStudent(createStudentInput: CreateTeacherWithUserInput!): Teacher!
+  updateUser(input: UpdateUserInput!): User!
+  removeUser(id: Int!): User!
   createScore(createScoreInput: CreateScoreInput!): Score!
   updateScore(updateScoreInput: UpdateScoreInput!): Score!
   removeScore(id: Int!): Score!
   createClass(createClassInput: CreateClassInput!): Class!
   addStudentToClass(classId: String!, studentId: String!): Class!
   updateClass(updateClassInput: UpdateClassInput!): Class!
-  removeClass(id: Int!): Class!
+  removeClass(id: String!): Class!
   createAttendance(input: CreateAttendanceInput!): Attendance!
   updateAttendance(updateAttendanceInput: UpdateAttendanceInput!): Attendance!
   removeAttendance(id: Int!): Attendance!
   SignIn(input: LoginInput!): LoginResponse!
   CreateUser(input: CreateUserInput!): User!
+  createNotification(input: CreateNotificationInput!): Notification!
+  removeNotification(id: ID!): Boolean!
 }
 
-input CreateTeacherWithUserInput {
-  fullName: String!
-  birthDate: String!
-  username: String!
-  password: String!
+input UpdateUserInput {
+  fullName: String
+  username: String
+  password: String
+  role: UserRole
+  id: Int!
+}
+
+"""User roles in the system"""
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
 }
 
 input CreateScoreInput {
@@ -119,7 +142,7 @@ input UpdateScoreInput {
 input CreateClassInput {
   className: String!
   subject: String!
-  teacherId: String!
+  teacherId: String
 }
 
 input UpdateClassInput {
@@ -145,15 +168,13 @@ input LoginInput {
 }
 
 input CreateUserInput {
-  fullName: String!
+  fullName: String
   username: String!
   password: String!
   role: UserRole!
 }
 
-"""User roles in the system"""
-enum UserRole {
-  ADMIN
-  TEACHER
-  STUDENT
+input CreateNotificationInput {
+  message: String!
+  recipients: [ID!]
 }

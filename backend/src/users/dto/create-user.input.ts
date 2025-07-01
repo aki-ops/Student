@@ -12,8 +12,8 @@ export class LoginInput {
 
 @InputType()
 export class CreateUserInput {
-  @Field()
-  fullName: string;
+  @Field({ nullable: true })
+  fullName?: string;
 
   @Field()
   username: string;

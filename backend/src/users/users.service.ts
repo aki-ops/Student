@@ -5,6 +5,7 @@ import { User } from './entities/user.entity';
 import { Model } from 'mongoose';
 import { UserRole } from 'common/enums/user-role.enum';
 import { CurrentUser } from 'common/decorators/current-user.decorator';
+import { UpdateUserInput } from './dto/update-user.input';
 
 @Injectable()
 export class UsersService {
@@ -20,11 +21,12 @@ export class UsersService {
 
   // ➕ Tạo user khi tạo student/teacher
   async createUser(data: {
-    fullName: string;
+    fullName?: string;
     username: string;
     password: string; // đã hash
     role: UserRole;
   }): Promise<User> {
+    console.log('DEBUG: Creating user with data:', data);
     const createdUser = new this.userModel(data);
     return createdUser.save();
   }
@@ -46,7 +48,13 @@ export class UsersService {
   }
 
   async findAll(user: User): Promise<User[]> {
-    if (user.role === UserRole.ADMIN) return this.userModel.find().exec();
+    console.log('DEBUG: findAll called with user role:', user.role);
+    
+    if (user.role === UserRole.ADMIN) {
+      const users = await this.userModel.find().exec();
+      console.log('DEBUG: Found users:', users.map(u => ({ id: u.id, username: u.username, fullName: u.fullName, role: u.role })));
+      return users;
+    }
     if (user.role === UserRole.STUDENT) {
       const currentuser = await this.userModel.findById(user.id);
       return currentuser ? [currentuser] : [];
@@ -56,5 +64,31 @@ export class UsersService {
 
   async findbyRole(role: UserRole): Promise<User[]> {
     return this.userModel.find({ role }).exec();
+  }
+
+  // ✏️ Cập nhật user
+  async update(id: number, updateUserInput: UpdateUserInput): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      id,
+      { $set: updateUserInput },
+      { new: true }
+    ).exec();
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
+
+  // 🗑️ Xóa user
+  async remove(id: number): Promise<User> {
+    const user = await this.userModel.findByIdAndDelete(id).exec();
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
   }
 }

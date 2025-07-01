@@ -8,6 +8,6 @@ export class CreateClassInput {
   @Field()
   subject: string;
 
-  @Field()
-  teacherId: string;
+  @Field({ nullable: true })
+  teacherId?: string;
 }
