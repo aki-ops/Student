@@ -8,9 +8,10 @@ import { AttendanceRecordSchema } from '../dto/create-attendance.input';
 @Schema()
 @ObjectType()
 export class Attendance extends Document {
-  @Field(() => ID)
-  declare id: string;
+  @Field(() => ID, { name: 'id' })
+  declare readonly id: string;
 
+  @Prop({ type: String })
   @Field()
   classId: string;
 

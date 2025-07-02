@@ -49,7 +49,7 @@ export class AttendanceResolver {
   }
 
   @Mutation(() => Attendance)
-  removeAttendance(@Args('id', { type: () => Int }) id: number) {
+  removeAttendance(@Args('id', { type: () => String }) id: string) {
     return this.attendanceService.remove(id);
   }
 }

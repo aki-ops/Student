@@ -29,7 +29,7 @@ export class AuthService {
     }
 
     async createUser(input: CreateUserInput): Promise<User> {
-        const { fullName, username, password, role } = input;
+        const {username} = input;
 
         // Check duplicate
         const existing = await this.usersService.findByUsername(username);

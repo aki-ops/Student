@@ -20,26 +20,23 @@ export class AttendanceService {
   }
 
   findAll() {
-    return `This action returns all attendance`;
+    return this.attendanceModel.find();
   }
 
   async getByClass(classId: string): Promise<Attendance[]> {
-    return this.attendanceModel.find({ classId }).populate('records.studentId').exec();
+    return this.attendanceModel.find({ classId });
   }
 
   // 📥 Lấy điểm danh theo ID học sinh
   async getByStudent(studentId: string): Promise<Attendance[]> {
-    return this.attendanceModel
-      .find({ 'records.studentId': studentId })
-      .populate('records.studentId')
-      .exec();
+    return this.attendanceModel.find({ 'records.studentId': studentId });
   }
 
-  update(id: number, updateAttendanceInput: UpdateAttendanceInput) {
-    return `This action updates a #${id} attendance`;
+  update(id: string, updateAttendanceInput: UpdateAttendanceInput) {
+    return this.attendanceModel.findByIdAndUpdate(id, updateAttendanceInput, { new: true });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} attendance`;
+  remove(id: string) {
+    return this.attendanceModel.findByIdAndDelete(id);
   }
 }

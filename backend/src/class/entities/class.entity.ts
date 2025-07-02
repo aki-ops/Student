@@ -8,8 +8,8 @@ import { User } from '../../users/entities/user.entity';
 @Schema()
 @ObjectType()
 export class Class extends Document {
-  @Field(() => ID)
-  declare id: string;
+  @Field(() => ID, { name: 'id' })
+  declare readonly id: string;
 
   @Prop()
   @Field(() => String)
@@ -23,8 +23,8 @@ export class Class extends Document {
   @Field(() => User, { nullable: true })
   teacher: User;
 
-  @Prop()
-  @Field(() => ID)
+  @Prop({ type: String })
+  @Field(() => ID, { nullable: true })
   teacherId: string;
 
   @Prop({ type: [mongoose.Schema.Types.ObjectId], ref: 'User' })
@@ -34,9 +34,6 @@ export class Class extends Document {
   @Prop({ type: [String] })
   @Field(() => [ID])
   studentIds: string[];
-  
 }
-
-
 
 export const ClassSchema = SchemaFactory.createForClass(Class);

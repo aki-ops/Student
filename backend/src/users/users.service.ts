@@ -6,6 +6,7 @@ import { Model } from 'mongoose';
 import { UserRole } from 'common/enums/user-role.enum';
 import { CurrentUser } from 'common/decorators/current-user.decorator';
 import { UpdateUserInput } from './dto/update-user.input';
+import { CreateUserInput } from './dto/create-user.input';
 
 @Injectable()
 export class UsersService {
@@ -20,21 +21,17 @@ export class UsersService {
   }
 
   // ➕ Tạo user khi tạo student/teacher
-  async createUser(data: {
-    fullName?: string;
-    username: string;
-    password: string; // đã hash
-    role: UserRole;
-  }): Promise<User> {
-    console.log('DEBUG: Creating user with data:', data);
+  async createUser(data: CreateUserInput): Promise<User> {
     const createdUser = new this.userModel(data);
     return createdUser.save();
   }
+  
+
 
 
   // 🔍 Tìm theo ID (nếu cần validate user từ token)
   async findById(userId: string): Promise<User | null> {
-    return this.userModel.findById(userId).exec();
+    return this.userModel.findById(userId);
   }
 
   // 🔐 Đổi mật khẩu (tuỳ chọn)
@@ -49,9 +46,9 @@ export class UsersService {
 
   async findAll(user: User): Promise<User[]> {
     console.log('DEBUG: findAll called with user role:', user.role);
-    
+
     if (user.role === UserRole.ADMIN) {
-      const users = await this.userModel.find().exec();
+      const users = await this.userModel.find();
       console.log('DEBUG: Found users:', users.map(u => ({ id: u.id, username: u.username, fullName: u.fullName, role: u.role })));
       return users;
     }
@@ -67,28 +64,22 @@ export class UsersService {
   }
 
   // ✏️ Cập nhật user
-  async update(id: number, updateUserInput: UpdateUserInput): Promise<User> {
+  async update(id: string, updateUserInput: UpdateUserInput): Promise<User> {
     const user = await this.userModel.findByIdAndUpdate(
       id,
       { $set: updateUserInput },
       { new: true }
-    ).exec();
-    
+    );
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    
+
     return user;
   }
 
   // 🗑️ Xóa user
-  async remove(id: number): Promise<User> {
-    const user = await this.userModel.findByIdAndDelete(id).exec();
-    
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    
-    return user;
+  async remove(id: string): Promise<User | null> {
+    return this.userModel.findByIdAndDelete(id);
   }
 }

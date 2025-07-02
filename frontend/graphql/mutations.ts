@@ -43,7 +43,7 @@ export const UPDATE_USER_MUTATION = gql`
 `;
 
 export const DELETE_USER_MUTATION = gql`
-  mutation DeleteUser($id: Int!) {
+  mutation DeleteUser($id: String!) {
     removeUser(id: $id) {
       id
     }
@@ -58,19 +58,7 @@ export const CREATE_CLASS_MUTATION = gql`
       className
       subject
       teacherId
-      teacher {
-        id
-        username
-        fullName
-        role
-      }
       studentIds
-      students {
-        id
-        username
-        fullName
-        role
-      }
     }
   }
 `;
@@ -166,7 +154,7 @@ export const UPDATE_SCORE_MUTATION = gql`
 `;
 
 export const DELETE_SCORE_MUTATION = gql`
-  mutation DeleteScore($id: Int!) {
+  mutation DeleteScore($id: String!) {
     removeScore(id: $id) {
       id
     }
@@ -205,7 +193,7 @@ export const UPDATE_ATTENDANCE_MUTATION = gql`
 `;
 
 export const DELETE_ATTENDANCE_MUTATION = gql`
-  mutation DeleteAttendance($id: Int!) {
+  mutation DeleteAttendance($id: String!) {
     removeAttendance(id: $id) {
       id
     }

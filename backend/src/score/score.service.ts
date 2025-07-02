@@ -21,44 +21,35 @@ export class ScoreService {
   async create(createScoreInput: CreateScoreInput) {
     const student = await this.userModel.findById(createScoreInput.studentId);
     if (!student) throw new NotFoundException('Student not found');
-
     const classExists = await this.classModel.findById(createScoreInput.classId);
     if (!classExists) throw new NotFoundException('Class not found');
-
     const created = new this.scoreModel(createScoreInput);
     return created.save();
   }
 
   async findByStudent(studentId: string): Promise<Score[]> {
-    return this.scoreModel
-      .find({ studentId })
-      .exec();
+    return this.scoreModel.find({ studentId });
   }
 
   @Roles('ADMIN', 'TEACHER')
   async findByClass(classId: string): Promise<Score[]> {
-    return this.scoreModel
-      .find({ classId })
-      .exec();
+    return this.scoreModel.find({ classId });
   }
 
   @Roles('ADMIN', 'TEACHER')
   async findAll(): Promise<Score[]> {
-    // Temporarily disable populate to fix the error
-    return this.scoreModel
-      .find()
-      .exec();
+    return this.scoreModel.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} score`;
+  async findOne(id: string): Promise<Score | null> {
+    return this.scoreModel.findById(id);
   }
 
-  update(id: number, updateScoreInput: UpdateScoreInput) {
-    return `This action updates a #${id} score`;
+  async update(id: string, updateScoreInput: UpdateScoreInput): Promise<Score | null> {
+    return this.scoreModel.findByIdAndUpdate(id, updateScoreInput, { new: true });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} score`;
+  async remove(id: string): Promise<Score | null> {
+    return this.scoreModel.findByIdAndDelete(id);
   }
 }

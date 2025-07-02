@@ -24,25 +24,21 @@ export class NotificationService {
       recipients: input.recipients,
     });
     await notification.save();
-    return this.notificationModel.findById(notification._id)
-      .populate('sender');
+    return this.notificationModel.findById(notification._id);
   }
 
   // notification.service.ts
-  async findForUser(userId: string, classIds: string[]) {
-    return this.notificationModel
+  async findForUser(classIds: string[]) {
+    const notis = await this.notificationModel
       .find({
-        $or: [
-          { recipients: userId },
-          { targetClasses: { $in: classIds } },
-        ],
+        recipients: { $in: classIds }
       })
-      .sort({ createdAt: -1 })
-      .populate('sender');
+      .sort({ createdAt: -1 });
+    return notis;
   }
 
   async findById(id: string) {
-    return this.notificationModel.findById(id).populate('sender');
+    return this.notificationModel.findById(id);
   }
 
   async remove(id: string) {

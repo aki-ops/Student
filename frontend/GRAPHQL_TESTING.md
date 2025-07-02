@@ -57,7 +57,7 @@ mutation CreateScore {
 ```javascript
 mutation UpdateClass {
   updateClass(updateClassInput: {
-    id: 1
+    id: "1"
     className: "Toán 10A - Nâng cao"
     subject: "Toán học"
     teacherId: "1"
@@ -75,7 +75,7 @@ mutation UpdateClass {
 ```javascript
 mutation UpdateScore {
   updateScore(updateScoreInput: {
-    id: 1
+    id: "1"
     studentId: "1"
     classId: "1"
     subject: "Toán học"
@@ -95,7 +95,7 @@ mutation UpdateScore {
 #### Get Class by ID
 ```javascript
 query GetClassById {
-  class(id: 1) {
+  class(id: "1") {
     id
     className
     subject
@@ -108,7 +108,7 @@ query GetClassById {
 #### Get Score by ID
 ```javascript
 query GetScoreById {
-  score(id: 1) {
+  score(id: "1") {
     id
     studentId
     classId

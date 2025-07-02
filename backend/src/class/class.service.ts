@@ -16,26 +16,16 @@ export class ClassService {
   ) { }
 
   async create(createClassInput: CreateClassInput): Promise<Class> {
-    // Đảm bảo teacher field được set
     const classData = {
       ...createClassInput,
-      teacher: createClassInput.teacherId // Set teacher field để populate
+      teacher: createClassInput.teacherId
     };
-    
     const created = new this.classModel(classData);
     const saved = await created.save();
-    
-    // Populate teacher information before returning
-    const populated = await this.classModel
-      .findById(saved._id)
-      .populate('teacher', 'id username fullName role')
-      .populate('students', 'id username fullName role')
-      .exec();
-    
-    if (!populated) {
-      throw new NotFoundException('Class not found after creation');
-    }
-    return populated;
+    // Populate teacher và students nếu thực sự cần object, còn lại trả về string
+    const result = await this.classModel.findById(saved._id);
+    if (!result) throw new NotFoundException('Class not found');
+    return result;
   }
 
   async findAll(): Promise<Class[]> {
@@ -67,35 +57,7 @@ export class ClassService {
   }
 
   async findClassesByStudentId(studentId: string): Promise<Class[]> {
-    console.log('DEBUG: Finding classes for studentId:', studentId);
-    
-    const classes = await this.classModel
-      .find({ studentIds: studentId })
-      .populate('teacher', 'id username fullName role')
-      .populate('students', 'id username fullName role')
-      .exec();
-    
-    console.log('DEBUG: Found classes:', classes.length);
-    
-    // Nếu populate không hoạt động, thử lấy thông tin teacher từ teacherId
-    const classesWithTeacherInfo = await Promise.all(
-      classes.map(async (cls) => {
-        if (!cls.teacher && cls.teacherId) {
-          const teacher = await this.usersService.findById(cls.teacherId);
-          if (teacher) {
-            (cls as any).teacher = {
-              id: teacher.id,
-              username: teacher.username,
-              fullName: teacher.fullName,
-              role: teacher.role
-            };
-          }
-        }
-        return cls;
-      })
-    );
-    
-    return classesWithTeacherInfo;
+    return this.classModel.find({ studentIds: studentId });
   }
 
   async addStudentToClass(classId: string, studentId: string): Promise<Class> {
@@ -131,11 +93,7 @@ export class ClassService {
   }
 
   async findOne(id: string): Promise<Class> {
-    const classDoc = await this.classModel
-      .findById(id)
-      .populate('teacher', 'id username fullName role')
-      .populate('students', 'id username fullName role')
-      .exec();
+    const classDoc = await this.classModel.findById(id);
     if (!classDoc) {
       throw new NotFoundException('Class not found');
     }
@@ -148,12 +106,10 @@ export class ClassService {
       id,
       updateData,
       { new: true }
-    ).exec();
-
+    );
     if (!updatedClass) {
       throw new NotFoundException('Class not found');
     }
-
     return updatedClass;
   }
 

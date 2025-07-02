@@ -55,19 +55,7 @@ export const GET_MY_CLASSES_QUERY = gql`
       className
       subject
       teacherId
-      teacher {
-        id
-        username
-        fullName
-        role
-      }
       studentIds
-      students {
-        id
-        username
-        fullName
-        role
-      }
     }
   }
 `;
@@ -102,7 +90,7 @@ export const GET_ATTENDANCE_QUERY = gql`
 
 // Individual queries for when we have IDs
 export const GET_CLASS_BY_ID_QUERY = gql`
-  query GetClassById($id: Int!) {
+  query GetClassById($id: String!) {
     class(id: $id) {
       id
       className
@@ -114,7 +102,7 @@ export const GET_CLASS_BY_ID_QUERY = gql`
 `;
 
 export const GET_SCORE_BY_ID_QUERY = gql`
-  query GetScoreById($id: Int!) {
+  query GetScoreById($id: String!) {
     score(id: $id) {
       id
       studentId
@@ -155,11 +143,26 @@ export const FIND_USER_BY_ID_QUERY = gql`
 export const GET_MY_NOTIFICATION = gql`
   query GetMyNotifications {
     getMyNotifications {
-      _id
+      id
       message
       sender
       recipients
       createdAt
+      className
+      teacherName
+    }
+  }
+`;
+
+export const GET_SENT_NOTIFICATIONS = gql`
+  query GetSentNotifications {
+    getSentNotifications {
+      id
+      message
+      recipients
+      createdAt
+      className
+      teacherName
     }
   }
 `;

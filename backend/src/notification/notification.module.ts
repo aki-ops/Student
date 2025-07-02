@@ -8,6 +8,8 @@ import { ClassModule } from '../class/class.module';
 import { Notification } from './entities/notification.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UserSchema } from 'src/users/entities/user.entity';
+import { Class } from 'src/class/entities/class.entity';
+import { ClassSchema } from 'src/class/entities/class.entity';
 
 @Module({
   providers: [NotificationResolver, NotificationService],
@@ -17,6 +19,9 @@ import { UserSchema } from 'src/users/entities/user.entity';
     ]),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Class.name, schema: ClassSchema },
     ]),
     UsersModule,
     ClassModule,

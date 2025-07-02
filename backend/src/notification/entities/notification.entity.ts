@@ -8,19 +8,19 @@ export type NotificationDocument = Notification & Document;
 
 @Schema({ timestamps: { createdAt: true, updatedAt: false } })
 @ObjectType()
-export class Notification {
-  @Field(() => ID)
-  _id: string;
+export class Notification extends Document {
+  @Field(() => ID, { name: 'id' })
+  declare readonly id: string;
 
   @Prop()
   @Field()
   message: string;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  @Prop({ type: String })
   @Field(() => ID)
   sender: string;
 
-  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Class' }] })
+  @Prop({ type: [String] })
   @Field(() => [ID])
   recipients: string[];
 

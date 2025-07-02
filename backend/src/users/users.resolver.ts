@@ -28,7 +28,7 @@ export class UsersResolver {
 
   @Mutation(() => User)
   @Roles(UserRole.ADMIN)
-  removeUser(@Args('id', { type: () => Int }) id: number) {
+  removeUser(@Args('id', { type: () => String }) id: string) {
     return this.usersService.remove(id);
   }
 

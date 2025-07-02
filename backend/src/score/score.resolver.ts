@@ -24,7 +24,7 @@ export class ScoreResolver {
   }
 
   @Query(() => Score, { name: 'score' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
+  findOne(@Args('id', { type: () => String }) id: string) {
     return this.scoreService.findOne(id);
   }
 
@@ -34,7 +34,7 @@ export class ScoreResolver {
   }
 
   @Mutation(() => Score)
-  removeScore(@Args('id', { type: () => Int }) id: number) {
+  removeScore(@Args('id', { type: () => String }) id: string) {
     return this.scoreService.remove(id);
   }
 }

@@ -7,8 +7,9 @@ import { UserRole } from '../../../common/enums/user-role.enum';
 @ObjectType()
 @Schema()
 export class User extends Document {
+  // @ts-ignore
   @Field(() => ID)
-  declare readonly id: string
+  declare readonly id: string;
 
   @Prop({ required: true, unique: true })
   @Field()
@@ -26,7 +27,7 @@ export class User extends Document {
   @Field()
   role: UserRole;
 
-  @Prop({ type: [{ type: 'ObjectId', ref: 'Class' }] })
+  @Prop({ type: [String] })
   @Field(() => [ID])
   classes: string[];
 
@@ -39,3 +40,5 @@ export class LoginResponse {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+UserSchema.set('toObject', { virtuals: true });
+UserSchema.set('toJSON', { virtuals: true });

@@ -6,14 +6,16 @@ import * as mongoose from 'mongoose';
 @Schema()
 @ObjectType()
 export class Score extends Document {
-  @Field(() => ID)
-  declare id: string;
+  @Field(() => ID, { name: 'id' })
+  get scoreId(): string {
+    return this._id ? this._id.toString() : '';
+  }
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' }) // học sinh
+  @Prop({ type: String }) // học sinh
   @Field()
   studentId: string;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Class' }) // lớp học
+  @Prop({ type: String }) // lớp học
   @Field()
   classId: string;
 

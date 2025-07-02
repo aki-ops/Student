@@ -8,7 +8,7 @@ import { SchemaFactory } from '@nestjs/mongoose';
 @InputType('AttendanceRecordInput')
 @Schema({_id : false})
 export class AttendanceRecord {
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' }) // student
+  @Prop({ type: String }) // student
   @Field()
   studentId: string;
 
