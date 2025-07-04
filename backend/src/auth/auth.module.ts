@@ -14,7 +14,7 @@ import { StudentModule } from 'src/student/student.module';
     PassportModule,
     JwtModule.register({
       secret: 'your_jwt_secret',
-      signOptions: { expiresIn: '1d' },
+      signOptions: { expiresIn: '1h' },
     }),
     UsersModule
   ],

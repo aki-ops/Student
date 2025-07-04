@@ -179,6 +179,11 @@ export default function AdminDashboard() {
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [form, setForm] = useState({ name: '', username: '', role: 'STUDENT' });
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [addStudentLoading, setAddStudentLoading] = useState(false);
+  const [addStudentError, setAddStudentError] = useState<string>('');
 
   // Queries
   const { data, loading, error } = useQuery(CURRENT_USER_QUERY);
@@ -538,7 +543,7 @@ export default function AdminDashboard() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2"></div>
                 <p>Đang tải danh sách lớp học...</p>
             </div>
-            ) : classesData?.findAllClasses?.length === 0 ? (
+            ) : classesData?.getAllClasses?.length === 0 ? (
               <div className="text-gray-500 text-center py-8">Chưa có lớp học nào.</div>
           ) : (
             <div className="overflow-x-auto">
@@ -548,12 +553,12 @@ export default function AdminDashboard() {
                     <th className="border px-3 py-2">Tên lớp</th>
                     <th className="border px-3 py-2">Môn học</th>
                     <th className="border px-3 py-2">Giáo viên</th>
-                      <th className="border px-3 py-2">Số học sinh</th>
+                    <th className="border px-3 py-2">Số học sinh</th>
                     <th className="border px-3 py-2">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
-                    {classesData?.findAllClasses?.map((c: Class) => (
+                    {classesData?.getAllClasses?.map((c: Class) => (
                       <tr key={c.id} className="hover:bg-purple-50 transition text-gray-900 font-medium">
                       <td className="border px-3 py-2">{c.className}</td>
                       <td className="border px-3 py-2">{c.subject}</td>
@@ -568,8 +573,19 @@ export default function AdminDashboard() {
                             </button>
                             <button className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm">
                               Xóa
-                  </button>
-                </div>
+                            </button>
+                            <button
+                              className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                              onClick={() => {
+                                setSelectedClass(c);
+                                setShowAddStudentModal(true);
+                                setSelectedStudentId('');
+                                setAddStudentError('');
+                              }}
+                            >
+                              Thêm học sinh
+                            </button>
+                          </div>
                       </td>
                     </tr>
                   ))}
@@ -577,8 +593,70 @@ export default function AdminDashboard() {
               </table>
             </div>
           )}
-            </div>
-          )}
+            {/* Modal thêm học sinh vào lớp */}
+            {showAddStudentModal && selectedClass && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-xl p-6 w-96 shadow-2xl border border-gray-200">
+                  <h3 className="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                    <span className="text-2xl">➕</span>
+                    Thêm học sinh vào lớp "{selectedClass.className}"
+                  </h3>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2 text-gray-700">Chọn học sinh:</label>
+                    <select
+                      value={selectedStudentId}
+                      onChange={e => setSelectedStudentId(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">-- Chọn học sinh --</option>
+                      {usersData?.findAllUsers?.filter((u: User) => u.role === 'STUDENT' && !selectedClass.studentIds.includes(u.id)).map((student: User) => (
+                        <option key={student.id} value={student.id}>
+                          {student.fullName || student.username}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {addStudentError && <div className="text-red-500 mb-2 text-sm">{addStudentError}</div>}
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 font-semibold shadow-lg disabled:opacity-60"
+                      disabled={addStudentLoading || !selectedStudentId}
+                      onClick={async () => {
+                        if (!selectedStudentId) return;
+                        setAddStudentLoading(true);
+                        setAddStudentError('');
+                        try {
+                          await addStudentToClass({ variables: { classId: selectedClass.id, studentId: selectedStudentId } });
+                          setShowAddStudentModal(false);
+                          setSelectedClass(null);
+                          setSelectedStudentId('');
+                          refetchClasses();
+                        } catch (err: any) {
+                          setAddStudentError('Có lỗi xảy ra khi thêm học sinh.');
+                        } finally {
+                          setAddStudentLoading(false);
+                        }
+                      }}
+                    >
+                      {addStudentLoading ? 'Đang thêm...' : 'Thêm'}
+                    </button>
+                    <button
+                      className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 font-semibold shadow-lg"
+                      onClick={() => {
+                        setShowAddStudentModal(false);
+                        setSelectedClass(null);
+                        setSelectedStudentId('');
+                        setAddStudentError('');
+                      }}
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
 
       </main>
