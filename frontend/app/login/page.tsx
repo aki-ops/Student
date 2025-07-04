@@ -27,8 +27,6 @@ export default function LoginPage() {
       });
 
       if (data?.SignIn?.access_token) {
-        localStorage.setItem('token', data.SignIn.access_token);
-
         router.push('/dashboard');
       } else {
         console.error('Login failed: No token returned');

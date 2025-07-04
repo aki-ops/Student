@@ -241,7 +241,6 @@ export default function AdminDashboard() {
 
   // Callbacks
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('token');
     window.location.href = '/login';
   }, []);
 

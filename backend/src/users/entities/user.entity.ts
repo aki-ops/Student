@@ -31,12 +31,19 @@ export class User extends Document {
   @Field(() => [ID])
   classes: string[];
 
+  @Prop({ type: String, nullable: true })
+  @Field({ nullable: true })
+  refreshToken?: string;
+
 }
 
 @ObjectType()
 export class LoginResponse {
   @Field()
   access_token: string;
+
+  @Field()
+  refresh_token: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

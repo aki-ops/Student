@@ -20,11 +20,6 @@ export class UsersResolver {
     return this.usersService.findAll(user);
   }
 
-  @Mutation(() => User)
-  @Roles(UserRole.ADMIN)
-  updateUser(@Args('input') input: UpdateUserInput) {
-    return this.usersService.update(input.id, input);
-  }
 
   @Mutation(() => User)
   @Roles(UserRole.ADMIN)

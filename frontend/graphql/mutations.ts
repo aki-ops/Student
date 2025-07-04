@@ -4,6 +4,7 @@ export const LOGIN_MUTATION = gql`
   mutation Login($input: LoginInput!) {
     SignIn(input: $input) {
       access_token
+      refresh_token
     }
   }
 `;
@@ -16,6 +17,12 @@ export const REGISTER_MUTATION = gql`
       fullName
       role
     }
+  }
+`;
+
+export const REFRESH_ACCESS_TOKEN = gql`
+  mutation RefreshAccessToken {
+    refreshAccessToken
   }
 `;
 
@@ -215,5 +222,11 @@ export const REMOVE_STUDENT_FROM_CLASS_MUTATION = gql`
       teacherId
       studentIds
     }
+  }
+`;
+
+export const LOGOUT = gql`
+  mutation Logout {
+    logout
   }
 `;

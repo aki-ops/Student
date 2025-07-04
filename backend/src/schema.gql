@@ -9,10 +9,12 @@ type User {
   password: String!
   role: String!
   classes: [ID!]!
+  refreshToken: String
 }
 
 type LoginResponse {
   access_token: String!
+  refresh_token: String!
 }
 
 type Score {
@@ -107,7 +109,6 @@ type Query {
 }
 
 type Mutation {
-  updateUser(input: UpdateUserInput!): User!
   removeUser(id: String!): User!
   createScore(createScoreInput: CreateScoreInput!): Score!
   updateScore(updateScoreInput: UpdateScoreInput!): Score!
@@ -120,25 +121,12 @@ type Mutation {
   updateAttendance(updateAttendanceInput: UpdateAttendanceInput!): Attendance!
   removeAttendance(id: String!): Attendance!
   SignIn(input: LoginInput!): LoginResponse!
+  logout: Boolean!
+  refreshAccessToken: String!
   CreateUser(input: CreateUserInput!): User!
   createNotification(input: CreateNotificationInput!): Notification!
   removeNotification(id: ID!): Boolean!
   markNotificationAsRead(notificationId: ID!): Boolean!
-}
-
-input UpdateUserInput {
-  fullName: String
-  username: String
-  password: String
-  role: UserRole
-  id: String!
-}
-
-"""User roles in the system"""
-enum UserRole {
-  ADMIN
-  TEACHER
-  STUDENT
 }
 
 input CreateScoreInput {
@@ -189,6 +177,13 @@ input CreateUserInput {
   username: String!
   password: String!
   role: UserRole!
+}
+
+"""User roles in the system"""
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
 }
 
 input CreateNotificationInput {

@@ -24,9 +24,7 @@ import { NotificationModule } from './notification/notification.module';
       driver: ApolloDriver,
       useFactory: () => ({
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-        context: ({ req }) => {
-          return { req }; // phải có dòng này để GqlAuthGuard dùng được context.req
-        },
+        context: ({ req, res }) => ({ req, res }),
         playground: true,
         debug: false,
         introspection: true,

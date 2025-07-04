@@ -301,7 +301,6 @@ export default function StudentDashboard() {
   }, [markAsRead, refetchUnreadCount, refetchNotifications]);
 
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('token');
     window.location.href = '/login';
   }, []);
 
