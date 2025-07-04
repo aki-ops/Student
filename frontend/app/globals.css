@@ -1,8 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6fbfd;
+  --foreground: #1a2a32;
+  --pastel-blue: #b3e0ff;
+  --pastel-blue-light: #e6f7ff;
+  --pastel-indigo: #a7c7e7;
+  --pastel-green: #b2f2bb;
+  --pastel-cyan: #d0f4ff;
+  --pastel-purple: #e3e0f9;
+  --pastel-yellow: #fffbe4;
+  --sidebar-bg: rgba(179, 224, 255, 0.7);
+  --sidebar-active: #a7c7e7;
+  --sidebar-hover: #e6f7ff;
+  --header-bg: rgba(255,255,255,0.7);
+  --card-bg: rgba(255,255,255,0.85);
+  --card-shadow: 0 4px 24px 0 rgba(30, 136, 229, 0.08);
+  --glass-blur: 18px;
+  --primary: #1976d2;
+  --primary-gradient: linear-gradient(90deg, #b3e0ff 0%, #a7c7e7 100%);
+  --success: #4caf50;
+  --danger: #e57373;
 }
 
 @theme inline {
@@ -12,15 +30,160 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: linear-gradient(135deg, var(--pastel-blue-light) 0%, var(--pastel-blue) 100%);
+  min-height: 100vh;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  color: #222;
+}
+
+/* Glassmorphism Card */
+.card-glass {
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  border-radius: 2rem;
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1.5px solid var(--pastel-blue);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.card-glass:hover {
+  box-shadow: 0 8px 32px 0 rgba(30, 136, 229, 0.16);
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* Sidebar Glass */
+.sidebar-glass {
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border-right: 2px solid var(--pastel-blue);
+  box-shadow: 0 2px 16px 0 rgba(30, 136, 229, 0.08);
+}
+
+/* Header Glass */
+.header-glass {
+  background: var(--header-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  box-shadow: 0 2px 12px 0 rgba(30, 136, 229, 0.06);
+  border-radius: 1.5rem;
+}
+
+/* Button Modern */
+.btn-pastel {
+  background: var(--primary-gradient);
+  color: #fff;
+  border: none;
+  border-radius: 1.5rem;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px 0 rgba(30, 136, 229, 0.10);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.btn-pastel:hover {
+  background: linear-gradient(90deg, #a7c7e7 0%, #b3e0ff 100%);
+  box-shadow: 0 4px 16px 0 rgba(30, 136, 229, 0.16);
+  transform: translateY(-1px) scale(1.03);
+}
+
+/* Ripple effect for button */
+.btn-pastel:active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200%;
+  height: 200%;
+  background: rgba(179, 224, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple 0.4s linear;
+  pointer-events: none;
+}
+@keyframes ripple {
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Table Modern */
+.table-pastel {
+  border-radius: 1.2rem;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 12px 0 rgba(30, 136, 229, 0.06);
+}
+.table-pastel th {
+  background: var(--pastel-blue);
+  color: #1976d2;
+  font-weight: 700;
+  border-bottom: 2px solid var(--pastel-indigo);
+}
+.table-pastel tr {
+  transition: background 0.15s;
+}
+.table-pastel tr:hover {
+  background: var(--pastel-blue-light);
+}
+
+/* Input Modern */
+.input-pastel {
+  border-radius: 1.2rem;
+  border: 1.5px solid var(--pastel-blue);
+  padding: 0.7rem 1.2rem;
+  font-size: 1rem;
+  background: #fff;
+  transition: border 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.input-pastel:focus {
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 0 2px var(--pastel-blue-light);
+}
+
+/* Avatar */
+.avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--pastel-blue);
+  box-shadow: 0 1px 4px 0 rgba(30, 136, 229, 0.10);
+}
+
+/* Animation for bell icon */
+.bell-animate {
+  animation: bell-shake 0.7s cubic-bezier(.36,.07,.19,.97) both;
+}
+@keyframes bell-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+/* Modal Glass */
+.modal-glass {
+  background: rgba(255,255,255,0.95);
+  border-radius: 2rem;
+  box-shadow: 0 4px 32px 0 rgba(30, 136, 229, 0.12);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 2px solid var(--pastel-blue);
+}
+
+/* Utility */
+.shadow-pastel {
+  box-shadow: 0 2px 16px 0 rgba(30, 136, 229, 0.10);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: var(--pastel-blue-light);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pastel-blue);
+  border-radius: 8px;
 }

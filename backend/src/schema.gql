@@ -63,6 +63,8 @@ type Notification {
   sender: ID!
   recipients: [ID!]!
   createdAt: DateTime!
+  readBy: [ID!]!
+  isRead: Boolean!
 }
 
 type NotificationWithClassInfo {
@@ -71,6 +73,8 @@ type NotificationWithClassInfo {
   sender: ID!
   recipients: [ID!]!
   createdAt: DateTime!
+  readBy: [ID!]!
+  isRead: Boolean!
   className: String
   teacherName: String
 }
@@ -99,6 +103,7 @@ type Query {
   findTeacher: String!
   getMyNotifications: [NotificationWithClassInfo!]!
   getSentNotifications: [NotificationWithClassInfo!]!
+  getUnreadNotificationCount: Int!
 }
 
 type Mutation {
@@ -118,6 +123,7 @@ type Mutation {
   CreateUser(input: CreateUserInput!): User!
   createNotification(input: CreateNotificationInput!): Notification!
   removeNotification(id: ID!): Boolean!
+  markNotificationAsRead(notificationId: ID!): Boolean!
 }
 
 input UpdateUserInput {

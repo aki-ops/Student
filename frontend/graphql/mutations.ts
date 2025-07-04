@@ -200,6 +200,12 @@ export const DELETE_ATTENDANCE_MUTATION = gql`
   }
 `;
 
+export const MARK_NOTIFICATION_AS_READ_MUTATION = gql`
+  mutation MarkNotificationAsRead($notificationId: ID!) {
+    markNotificationAsRead(notificationId: $notificationId)
+  }
+`;
+
 export const REMOVE_STUDENT_FROM_CLASS_MUTATION = gql`
   mutation RemoveStudentFromClass($classId: String!, $studentId: String!) {
     removeStudentFromClass(classId: $classId, studentId: $studentId) {

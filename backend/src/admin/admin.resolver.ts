@@ -5,9 +5,10 @@ import { Roles } from 'common/decorators/roles.decorator';
 import { GqlAuthGuard } from 'common/guards/gql-auth.guard';
 import { CurrentUser } from 'common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { UserRole } from 'common/enums/user-role.enum';
 
 @UseGuards(GqlAuthGuard)
-@Roles('ADMIN')
+@Roles(UserRole.ADMIN)
 @Resolver()
 export class AdminResolver {
   constructor(private readonly adminService: AdminService) {}

@@ -45,11 +45,8 @@ export class UsersService {
   }
 
   async findAll(user: User): Promise<User[]> {
-    console.log('DEBUG: findAll called with user role:', user.role);
-
     if (user.role === UserRole.ADMIN) {
       const users = await this.userModel.find();
-      console.log('DEBUG: Found users:', users.map(u => ({ id: u.id, username: u.username, fullName: u.fullName, role: u.role })));
       return users;
     }
     if (user.role === UserRole.STUDENT) {

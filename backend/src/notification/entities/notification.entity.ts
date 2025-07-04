@@ -27,6 +27,14 @@ export class Notification extends Document {
   @Prop()
   @Field()
   createdAt: Date;
+
+  @Prop({ type: [String], default: [] })
+  @Field(() => [ID], { defaultValue: [] })
+  readBy: string[];
+
+  @Prop({ default: false })
+  @Field({ defaultValue: false })
+  isRead: boolean;
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);

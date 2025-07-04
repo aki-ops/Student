@@ -45,4 +45,27 @@ export class NotificationService {
     return this.notificationModel.findByIdAndDelete(id);
   }
 
+  async markAsRead(notificationId: string, userId: string) {
+    const notification = await this.notificationModel.findById(notificationId);
+    if (!notification) {
+      throw new Error('Không tìm thấy thông báo');
+    }
+    
+    // Thêm userId vào danh sách readBy nếu chưa có
+    if (!notification.readBy.includes(userId)) {
+      notification.readBy.push(userId);
+      await notification.save();
+    }
+    
+    return notification;
+  }
+
+  async getUnreadCount(userId: string, classIds: string[]) {
+    const notifications = await this.notificationModel.find({
+      recipients: { $in: classIds },
+      readBy: { $ne: userId }
+    });
+    return notifications.length;
+  }
+
 }

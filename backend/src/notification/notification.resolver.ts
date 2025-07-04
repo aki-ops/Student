@@ -151,6 +151,39 @@ export class NotificationResolver {
     });
     return result;
   }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
+  async markNotificationAsRead(
+    @Args('notificationId', { type: () => ID }) notificationId: string,
+    @CurrentUser() user: any,
+  ) {
+    try {
+      await this.notificationService.markAsRead(notificationId, user.id);
+      return true;
+    } catch (error) {
+      throw new Error(`Lỗi khi đánh dấu thông báo: ${error.message}`);
+    }
+  }
+
+  @Query(() => Int)
+  @UseGuards(GqlAuthGuard)
+  async getUnreadNotificationCount(@CurrentUser() user: any) {
+    let userId: string;
+    if (user && user._id) {
+      userId = typeof user._id === 'string' ? user._id : user._id.toString();
+    } else if (user && user.id) {
+      userId = typeof user.id === 'string' ? user.id : user.id.toString();
+    } else {
+      return 0;
+    }
+    
+    // Lấy classIds của user
+    const classes = await this.classModel.find({ studentIds: userId });
+    const classIds = classes.map((c: any) => c._id.toString());
+    
+    return this.notificationService.getUnreadCount(userId, classIds);
+  }
 }
 
 

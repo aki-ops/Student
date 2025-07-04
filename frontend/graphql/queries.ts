@@ -166,3 +166,9 @@ export const GET_SENT_NOTIFICATIONS = gql`
     }
   }
 `;
+
+export const GET_UNREAD_NOTIFICATION_COUNT = gql`
+  query GetUnreadNotificationCount {
+    getUnreadNotificationCount
+  }
+`;

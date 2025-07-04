@@ -28,7 +28,6 @@ export default function LoginPage() {
 
       if (data?.SignIn?.access_token) {
         localStorage.setItem('token', data.SignIn.access_token);
-        console.log('Token saved:', data.SignIn.access_token);
 
         router.push('/dashboard');
       } else {

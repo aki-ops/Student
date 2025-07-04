@@ -5,597 +5,571 @@ import { CURRENT_USER_QUERY } from '@/graphql/queries';
 import { GET_USERS_QUERY, GET_CLASSES_QUERY, GET_SCORES_QUERY, GET_ATTENDANCE_QUERY, FIND_USER_BY_ID_QUERY } from '@/graphql/queries';
 import { REGISTER_MUTATION, UPDATE_USER_MUTATION, DELETE_USER_MUTATION, CREATE_CLASS_MUTATION, ADD_STUDENT_TO_CLASS_MUTATION, UPDATE_CLASS_MUTATION, DELETE_CLASS_MUTATION, CREATE_SCORE_MUTATION, UPDATE_SCORE_MUTATION, DELETE_SCORE_MUTATION, CREATE_ATTENDANCE_MUTATION, UPDATE_ATTENDANCE_MUTATION, DELETE_ATTENDANCE_MUTATION } from '@/graphql/mutations';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { BellIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 
-function HeaderBar({ onTab, activeTab, onLogout }: { onTab: (tab: string) => void, activeTab: string, onLogout: () => void }) {
+// Types
+interface User {
+  id: string;
+  username: string;
+  fullName?: string;
+  role: string;
+}
+
+interface Class {
+  id: string;
+  className: string;
+  subject: string;
+  teacherId?: string;
+  teacher?: User;
+  studentIds: string[];
+  students?: User[];
+}
+
+interface Score {
+  id: string;
+  studentId: string;
+  classId: string;
+  subject: string;
+  score: number;
+}
+
+interface AttendanceRecord {
+  studentId: string;
+  status: string;
+}
+
+interface Attendance {
+  id: string;
+  classId: string;
+  date: string;
+  records: AttendanceRecord[];
+}
+
+type TabType = 'info' | 'user' | 'class';
+type UserTabType = 'all' | 'students' | 'teachers';
+
+// Components
+interface HeaderBarProps {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+  onLogout: () => void;
+}
+
+function HeaderBar({ activeTab, onTabChange, onLogout }: HeaderBarProps) {
   return (
     <div className="flex gap-2 items-center">
       <button
         className="relative group p-1"
         title="Thông báo"
-        onClick={() => onTab('noti')}
+        onClick={() => onTabChange('info')}
       >
-        <BellIcon className={`w-7 h-7 ${activeTab==='noti' ? 'text-yellow-500' : 'text-gray-500 group-hover:text-yellow-600'}`} />
+        <BellIcon className={`w-7 h-7 ${activeTab === 'info' ? 'text-yellow-500' : 'text-gray-500 group-hover:text-yellow-600'}`} />
       </button>
       <button
         className="relative group p-1"
         title="Thông tin cá nhân"
-        onClick={() => onTab('info')}
+        onClick={() => onTabChange('info')}
       >
-        <UserCircleIcon className={`w-7 h-7 ${activeTab==='info' ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-700'}`} />
+        <UserCircleIcon className={`w-7 h-7 ${activeTab === 'info' ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-700'}`} />
       </button>
       <button
         className="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition text-base font-semibold font-sans"
         onClick={onLogout}
-      >Đăng xuất</button>
+      >
+        Đăng xuất
+      </button>
     </div>
   );
 }
 
+interface SidebarProps {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+}
+
+function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  const tabs = [
+    { id: 'info' as TabType, label: 'Thông tin', icon: '👤', activeClass: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg', hoverClass: 'hover:bg-[var(--sidebar-hover)] text-blue-800' },
+    { id: 'user' as TabType, label: 'Quản lý người dùng', icon: '👥', activeClass: 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg', hoverClass: 'hover:bg-[var(--sidebar-hover)] text-blue-800' },
+    { id: 'class' as TabType, label: 'Lớp học', icon: '🏫', activeClass: 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg', hoverClass: 'hover:bg-[var(--sidebar-hover)] text-blue-800' },
+  ];
+
+  return (
+    <aside className="w-64 min-h-screen bg-gradient-to-b from-[var(--sidebar-bg)] to-[var(--pastel-indigo)] shadow-2xl flex flex-col py-8 px-6 gap-3 border-r border-blue-200">
+      <div className="text-center mb-10">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <span className="text-3xl">🛡️</span>
+        </div>
+        <h2 className="text-2xl font-bold text-blue-800 font-sans">Admin Panel</h2>
+        <p className="text-sm text-blue-600 mt-1">Quản lý hệ thống</p>
+      </div>
+      
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-lg transition-all duration-200 transform hover:scale-105 ${
+            activeTab === tab.id ? tab.activeClass : tab.hoverClass
+          }`}
+        >
+          <span className="text-xl">{tab.icon}</span>
+          <span>{tab.label}</span>
+        </button>
+      ))}
+      
+      <div className="flex-1" />
+    </aside>
+  );
+}
+
+interface TeacherNameByIdProps {
+  teacherId: string;
+}
+
+function TeacherNameById({ teacherId }: TeacherNameByIdProps) {
+  const { data, loading, error } = useQuery(FIND_USER_BY_ID_QUERY, { variables: { id: teacherId } });
+  
+  if (loading) return <span>Đang tải...</span>;
+  if (error || !data?.findById) return <span>Chưa có giáo viên</span>;
+  
+  return <span>{data.findById.fullName || data.findById.username}</span>;
+}
+
+interface StudentNamesByIdsProps {
+  studentIds: string[];
+}
+
+function StudentNamesByIds({ studentIds }: StudentNamesByIdsProps) {
+  return (
+    <div>
+      {studentIds.map((studentId, index) => (
+        <StudentNameById key={studentId} studentId={studentId} isLast={index === studentIds.length - 1} />
+      ))}
+    </div>
+  );
+}
+
+interface StudentNameByIdProps {
+  studentId: string;
+  isLast: boolean;
+}
+
+function StudentNameById({ studentId, isLast }: StudentNameByIdProps) {
+  const { data, loading, error } = useQuery(FIND_USER_BY_ID_QUERY, { variables: { id: studentId } });
+  
+  if (loading) return <span>Đang tải...</span>;
+  if (error || !data?.findById) return <span>Không tìm thấy học sinh</span>;
+  
+  return (
+    <span>
+      {data.findById.fullName || data.findById.username}
+      {!isLast && ', '}
+    </span>
+  );
+}
+
+// Main Component
 export default function AdminDashboard() {
   const router = useRouter();
-  const { data, loading, error } = useQuery(CURRENT_USER_QUERY);
+  
+  // State
+  const [activeTab, setActiveTab] = useState<TabType>('info');
+  const [activeUserTab, setActiveUserTab] = useState<UserTabType>('all');
   const [showModal, setShowModal] = useState(false);
-  const [editUser, setEditUser] = useState<any | null>(null);
+  const [editUser, setEditUser] = useState<User | null>(null);
   const [form, setForm] = useState({ name: '', username: '', role: 'STUDENT' });
-  const [activeUserTab, setActiveUserTab] = useState<'all' | 'students' | 'teachers'>('all');
 
-  // CLASSES - Updated: Backend now has getAllClasses query
+  // Queries
+  const { data, loading, error } = useQuery(CURRENT_USER_QUERY);
+  const isAdmin = data?.current_User?.role === 'ADMIN';
+
   const { data: classesData, loading: classesLoading, error: classesError, refetch: refetchClasses } = useQuery(GET_CLASSES_QUERY, {
     errorPolicy: 'all',
-    onError: (error) => {
-      console.log('Classes query error:', error.message);
-    }
   });
-  const [createClass] = useMutation(CREATE_CLASS_MUTATION);
-  const [addStudentToClass] = useMutation(ADD_STUDENT_TO_CLASS_MUTATION);
-  const [updateClass] = useMutation(UPDATE_CLASS_MUTATION);
-  const [deleteClass] = useMutation(DELETE_CLASS_MUTATION);
-  const [showClassModal, setShowClassModal] = useState(false);
-  const [editClass, setEditClass] = useState<any | null>(null);
-  const [classForm, setClassForm] = useState<{ className: string; subject: string; teacherId: string }>({ className: '', subject: '', teacherId: '' });
-  const [addStudentForm, setAddStudentForm] = useState<{ classId: string; studentId: string }>({ classId: '', studentId: '' });
-  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
 
-  // SCORES - Updated: Backend now has getAllScores query
+  // Queries for other dashboards (not used in admin)
   const { data: scoresData, loading: scoresLoading, error: scoresError, refetch: refetchScores } = useQuery(GET_SCORES_QUERY, {
     errorPolicy: 'all',
-    onError: (error) => {
-      console.log('Scores query error:', error.message);
-    }
   });
-  const [createScore] = useMutation(CREATE_SCORE_MUTATION);
-  const [updateScore] = useMutation(UPDATE_SCORE_MUTATION);
-  const [deleteScore] = useMutation(DELETE_SCORE_MUTATION);
-  const [showScoreModal, setShowScoreModal] = useState(false);
-  const [editScore, setEditScore] = useState<any | null>(null);
-  const [scoreForm, setScoreForm] = useState<{ studentId: string; classId: string; subject: string; score: number }>({ studentId: '', classId: '', subject: '', score: 0 });
 
-  // ATTENDANCE
   const { data: attendanceData, loading: attendanceLoading, error: attendanceError, refetch: refetchAttendance } = useQuery(GET_ATTENDANCE_QUERY);
-  const [createAttendance] = useMutation(CREATE_ATTENDANCE_MUTATION);
-  const [updateAttendance] = useMutation(UPDATE_ATTENDANCE_MUTATION);
-  const [deleteAttendance] = useMutation(DELETE_ATTENDANCE_MUTATION);
-  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
-  const [editAttendance, setEditAttendance] = useState<any | null>(null);
-  const [attendanceForm, setAttendanceForm] = useState<{ classId: string; date: string; records: string }>({ classId: '', date: '', records: '' });
 
-  // Lấy danh sách user từ backend - Updated: Backend now has findAllUsers query
   const { data: usersData, loading: usersLoading, error: usersError, refetch: refetchUsers } = useQuery(GET_USERS_QUERY, {
     errorPolicy: 'all',
-    onError: (error) => {
-      console.log('Users query error:', error.message);
-    }
   });
+
+  // Mutations
   const [createUser] = useMutation(REGISTER_MUTATION);
   const [updateUser] = useMutation(UPDATE_USER_MUTATION);
   const [deleteUser] = useMutation(DELETE_USER_MUTATION);
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<'info'|'user'|'class'|'score'|'attendance'>('info');
+  const [createClass] = useMutation(CREATE_CLASS_MUTATION);
+  const [addStudentToClass] = useMutation(ADD_STUDENT_TO_CLASS_MUTATION);
+  const [updateClass] = useMutation(UPDATE_CLASS_MUTATION);
+  const [deleteClass] = useMutation(DELETE_CLASS_MUTATION);
 
-  useEffect(() => {
-    if (error || data?.current_User?.role !== 'ADMIN') {
-      router.push('/login');
-    }
-  }, [data, error, router]);
+  // Mutations for other dashboards (not used in admin)
+  const [createScore] = useMutation(CREATE_SCORE_MUTATION);
+  const [updateScore] = useMutation(UPDATE_SCORE_MUTATION);
+  const [deleteScore] = useMutation(DELETE_SCORE_MUTATION);
 
-  if (loading) return <div className="flex items-center justify-center min-h-[40vh] text-lg text-gray-600">Loading admin dashboard...</div>;
+  const [createAttendance] = useMutation(CREATE_ATTENDANCE_MUTATION);
+  const [updateAttendance] = useMutation(UPDATE_ATTENDANCE_MUTATION);
+  const [deleteAttendance] = useMutation(DELETE_ATTENDANCE_MUTATION);
 
+  // Memoized computations
   const user = data?.current_User;
+  const currentUserInfo = useMemo(() => 
+    usersData?.findAllUsers?.find((u: User) => u.username === user?.username),
+    [usersData?.findAllUsers, user?.username]
+  );
   
-  // Lọc users theo tab
-  const filteredUsers = usersData?.findAllUsers?.filter((u: any) => {
+  const filteredUsers = useMemo(() => {
+    return usersData?.findAllUsers?.filter((u: User) => {
     if (activeUserTab === 'all') return true;
     if (activeUserTab === 'students') return u.role === 'STUDENT';
     if (activeUserTab === 'teachers') return u.role === 'TEACHER';
     return true;
   }) || [];
-  // Nếu cần id/fullName của user hiện tại, lấy từ usersData.findAllUsers theo username
-  const currentUserInfo = usersData?.findAllUsers?.find((u: any) => u.username === user?.username);
+  }, [usersData?.findAllUsers, activeUserTab]);
 
-  // CRUD handlers kết nối backend
-  const handleAdd = () => {
+  // Callbacks
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  }, []);
+
+  const handleTabChange = useCallback((tab: TabType) => {
+    setActiveTab(tab);
+  }, []);
+
+  const handleUserTabChange = useCallback((tab: UserTabType) => {
+    setActiveUserTab(tab);
+  }, []);
+
+  // User CRUD handlers
+  const handleAddUser = useCallback(() => {
     setEditUser(null);
     setForm({ name: '', username: '', role: 'STUDENT' });
     setShowModal(true);
-  };
-  const handleEdit = (user: any) => {
+  }, []);
+
+  const handleEditUser = useCallback((user: User) => {
     setEditUser(user);
-    setForm({ name: user.name, username: user.username, role: user.role });
+    setForm({ name: user.fullName || '', username: user.username, role: user.role });
     setShowModal(true);
-  };
-  const handleDelete = async (id: number) => {
+  }, []);
+
+  const handleDeleteUser = useCallback(async (id: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
+      return;
+    }
+    try {
     await deleteUser({ variables: { id } });
     refetchUsers();
-  };
-  const handleSave = async () => {
-    if (editUser) {
-      await updateUser({ variables: { input: { id: editUser.id, fullName: form.name, username: form.username, role: form.role } } });
-    } else {
-      await createUser({ variables: { input: { fullName: form.name, username: form.username, password: '123456', role: form.role } } });
+    } catch (error) {
+      console.error('Lỗi khi xóa user:', error);
+      alert('Có lỗi xảy ra khi xóa người dùng');
     }
-    setShowModal(false);
-    refetchUsers();
-  };
+  }, [deleteUser, refetchUsers]);
 
-  // CRUD handlers for Class (Apollo)
-  const handleAddClass = () => {
-    setEditClass(null);
-    setClassForm({ className: '', subject: '', teacherId: '' });
-    setShowClassModal(true);
-  };
-  const handleEditClass = (c: any) => {
-    setEditClass(c);
-    setClassForm({ 
-      className: c.className, 
-      subject: c.subject || '',
-      teacherId: c.teacherId?.id || ''
-    });
-    setShowClassModal(true);
-  };
-  const handleDeleteClass = async (id: string) => {
-    await deleteClass({ variables: { id } });
-    refetchClasses();
-  };
-  const handleSaveClass = async () => {
-    const createClassInput: any = { 
-      className: classForm.className, 
-      subject: classForm.subject 
-    };
+  const handleSaveUser = useCallback(async () => {
+    if (!form.name.trim() || !form.username.trim()) {
+      alert('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
     
-    // Chỉ thêm teacherId nếu được nhập
-    if (classForm.teacherId.trim()) {
-      createClassInput.teacherId = classForm.teacherId;
-    }
-
-    if (editClass) {
-      await updateClass({ variables: { updateClassInput: { id: editClass.id, ...createClassInput } } });
+    try {
+      if (editUser) {
+        await updateUser({ 
+          variables: { 
+            input: { 
+              id: editUser.id, 
+              fullName: form.name, 
+              username: form.username, 
+              role: form.role 
+            } 
+          } 
+        });
     } else {
-      await createClass({ variables: { createClassInput } });
+        await createUser({ 
+          variables: { 
+            input: { 
+              fullName: form.name, 
+              username: form.username, 
+              password: '123456', 
+              role: form.role 
+            } 
+          } 
+        });
+      }
+      setShowModal(false);
+      refetchUsers();
+    } catch (error) {
+      console.error('Lỗi khi lưu user:', error);
+      alert('Có lỗi xảy ra khi lưu người dùng');
     }
-    setShowClassModal(false);
-    refetchClasses();
-  };
+  }, [editUser, form, createUser, updateUser, refetchUsers]);
 
-  // Add student to class
-  const handleAddStudentToClass = () => {
-    setAddStudentForm({ classId: '', studentId: '' });
-    setShowAddStudentModal(true);
-  };
-
-  const handleSaveAddStudent = async () => {
-    await addStudentToClass({ 
-      variables: { 
-        classId: addStudentForm.classId, 
-        studentId: addStudentForm.studentId 
-      } 
-    });
-    setShowAddStudentModal(false);
-    refetchClasses();
-  };
-
-  // CRUD handlers for Score (Apollo)
-  const handleAddScore = () => {
-    setEditScore(null);
-    setScoreForm({ studentId: '', classId: '', subject: '', score: 0 });
-    setShowScoreModal(true);
-  };
-  const handleEditScore = (s: any) => {
-    setEditScore(s);
-    setScoreForm({ studentId: s.studentId, classId: s.classId, subject: s.subject, score: s.score });
-    setShowScoreModal(true);
-  };
-  const handleDeleteScore = async (id: string) => {
-    await deleteScore({ variables: { id } });
-    refetchScores();
-  };
-  const handleSaveScore = async () => {
-    if (editScore) {
-      await updateScore({ variables: { updateScoreInput: { id: editScore.id, ...scoreForm } } });
-    } else {
-      await createScore({ variables: { createScoreInput: scoreForm } });
+  // Effects
+  useEffect(() => {
+    if (error || !isAdmin) {
+      router.push('/login');
     }
-    setShowScoreModal(false);
-    refetchScores();
-  };
+  }, [data, error, router, isAdmin]);
 
-  // CRUD handlers for Attendance (Apollo)
-  const handleAddAttendance = () => {
-    setEditAttendance(null);
-    setAttendanceForm({ classId: '', date: '', records: '' });
-    setShowAttendanceModal(true);
-  };
-  const handleEditAttendance = (a: any) => {
-    setEditAttendance(a);
-    setAttendanceForm({ classId: a.classId, date: a.date?.slice(0,10), records: a.records?.map((r: any) => `${r.studentId}:${r.status}`).join(',') });
-    setShowAttendanceModal(true);
-  };
-  const handleDeleteAttendance = async (id: string) => {
-    await deleteAttendance({ variables: { id } });
-    refetchAttendance();
-  };
-  const handleSaveAttendance = async () => {
-    // records: "studentId:status,studentId:status"
-    const recordsArr = attendanceForm.records.split(',').map(r => {
-      const [studentId, status] = r.split(':').map(x => x.trim());
-      return { studentId, status };
-    }).filter(r => r.studentId && r.status);
-    if (editAttendance) {
-      await updateAttendance({ variables: { updateAttendanceInput: { id: editAttendance.id, classId: attendanceForm.classId, date: attendanceForm.date, records: recordsArr } } });
-    } else {
-      await createAttendance({ variables: { createAttendanceInput: { classId: attendanceForm.classId, date: attendanceForm.date, records: recordsArr } } });
-    }
-    setShowAttendanceModal(false);
-    refetchAttendance();
-  };
+  // Loading state
+  if (loading || !isAdmin) {
+  return (
+      <div className="flex items-center justify-center min-h-[40vh] text-lg text-gray-600">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p>Loading admin dashboard...</p>
+      </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-gradient-to-br from-indigo-50 via-white to-blue-100 min-h-screen font-sans">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-indigo-800 drop-shadow font-sans">🛡️ Admin Dashboard</h1>
-        <HeaderBar onTab={tab => setActiveTab(tab as typeof activeTab)} activeTab={activeTab} onLogout={() => { localStorage.removeItem('token'); window.location.href = '/login'; }} />
-      </div>
-      {/* Tabs */}
-      <div className="flex gap-2 mb-8">
-        <button onClick={()=>setActiveTab('info')} className={`px-4 py-2 rounded-t-lg font-semibold ${activeTab==='info' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-800'}`}>Thông tin</button>
-        <button onClick={()=>setActiveTab('user')} className={`px-4 py-2 rounded-t-lg font-semibold ${activeTab==='user' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-800'}`}>Người dùng</button>
-        <button onClick={()=>setActiveTab('class')} className={`px-4 py-2 rounded-t-lg font-semibold ${activeTab==='class' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'}`}>Lớp học</button>
-        <button onClick={()=>setActiveTab('score')} className={`px-4 py-2 rounded-t-lg font-semibold ${activeTab==='score' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'}`}>Điểm</button>
-        <button onClick={()=>setActiveTab('attendance')} className={`px-4 py-2 rounded-t-lg font-semibold ${activeTab==='attendance' ? 'bg-pink-600 text-white' : 'bg-pink-100 text-pink-800'}`}>Điểm danh</button>
-      </div>
-      {/* Tab content */}
-      {activeTab==='info' && (
-        <div className="mb-10 bg-white/90 rounded-xl shadow-lg p-6 border border-indigo-100">
-          <h2 className="text-2xl font-semibold mb-4 text-indigo-800 font-sans">👤 Thông tin cá nhân</h2>
-          <div className="text-lg text-gray-800 mb-2">Tên: <b>{currentUserInfo?.fullName || currentUserInfo?.username}</b></div>
-          <div className="text-lg text-gray-800 mb-2">Username: <b>{currentUserInfo?.username}</b></div>
-          <div className="text-lg text-gray-800 mb-2">Vai trò: <b>Admin</b></div>
+    <div className="min-h-screen flex bg-gradient-to-br from-[var(--background)] to-[var(--pastel-blue)]">
+      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+      
+      <main className="flex-1 p-8 max-w-7xl mx-auto">
+        {/* Header Bar */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-blue-800 drop-shadow font-sans">Admin Dashboard</h1>
+          <HeaderBar 
+            activeTab={activeTab} 
+            onTabChange={handleTabChange} 
+            onLogout={handleLogout} 
+          />
         </div>
-      )}
-      {activeTab==='user' && (
-        <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border border-indigo-100">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-semibold text-2xl text-indigo-800">👤 Quản lý người dùng</h2>
-            <button onClick={handleAdd} className="px-5 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">+ Thêm người dùng</button>
+
+        {/* Tab content */}
+        {activeTab === 'info' && (
+          <div className="mb-10 bg-white/90 rounded-xl shadow-lg p-6 border border-green-100">
+            <h2 className="text-2xl font-semibold mb-4 text-green-800 font-sans flex items-center gap-2">
+              👤 Thông tin cá nhân
+            </h2>
+            <div className="text-lg text-gray-800 mb-2">
+              Tên: <b>{currentUserInfo?.fullName || currentUserInfo?.username}</b>
+            </div>
+            <div className="text-lg text-gray-800 mb-2">
+              Username: <b>{currentUserInfo?.username}</b>
+            </div>
+            <div className="text-lg text-gray-800 mb-2">
+              Vai trò: <b>Admin</b>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'user' && (
+          <div className="mb-10 bg-white/90 rounded-xl shadow-lg p-6 border border-green-100">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-green-800 font-sans flex items-center gap-2">
+                👥 Quản lý người dùng
+              </h2>
+              <button
+                onClick={handleAddUser}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition font-semibold"
+              >
+                + Thêm người dùng
+              </button>
           </div>
           
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6">
+            {/* User tabs */}
+            <div className="flex gap-2 mb-4">
             <button 
-              onClick={() => setActiveUserTab('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeUserTab === 'all' 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Tất cả ({usersData?.findAllUsers?.length || 0})
+                onClick={() => handleUserTabChange('all')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  activeUserTab === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Tất cả
             </button>
             <button 
-              onClick={() => setActiveUserTab('students')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeUserTab === 'students' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Học sinh ({usersData?.findAllUsers?.filter((u: any) => u.role === 'STUDENT').length || 0})
+                onClick={() => handleUserTabChange('students')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  activeUserTab === 'students' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Học sinh
             </button>
             <button 
-              onClick={() => setActiveUserTab('teachers')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                activeUserTab === 'teachers' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Giáo viên ({usersData?.findAllUsers?.filter((u: any) => u.role === 'TEACHER').length || 0})
+                onClick={() => handleUserTabChange('teachers')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  activeUserTab === 'teachers' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Giáo viên
             </button>
-          </div>
-          {usersLoading ? (
-            <div>Đang tải...</div>
-          ) : usersError ? (
-            <div className="text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
-              <p className="font-semibold">❌ Lỗi tải dữ liệu người dùng</p>
-              <p className="text-sm mt-1">Vui lòng thử lại sau.</p>
             </div>
+            
+            {usersLoading ? (
+              <div>Đang tải danh sách người dùng...</div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-gray-500">Không có người dùng nào.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border text-base mb-4 bg-white rounded-xl overflow-hidden shadow font-sans">
                 <thead>
-                  <tr className="bg-indigo-100 text-indigo-800 font-bold">
-                    <th className="border px-3 py-2">ID</th>
+                    <tr className="bg-green-100 text-green-800 font-bold">
                     <th className="border px-3 py-2">Tên</th>
                     <th className="border px-3 py-2">Username</th>
-                    <th className="border px-3 py-2">Role</th>
+                      <th className="border px-3 py-2">Vai trò</th>
                     <th className="border px-3 py-2">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="border px-3 py-4 text-center text-gray-500">
-                        {activeUserTab === 'all' && 'Không có người dùng nào'}
-                        {activeUserTab === 'students' && 'Không có học sinh nào'}
-                        {activeUserTab === 'teachers' && 'Không có giáo viên nào'}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((u: any) => (
-                      <tr key={u.id} className="hover:bg-indigo-50 transition text-gray-900 font-medium">
-                        <td className="border px-3 py-2">{u.id}</td>
-                        <td className="border px-3 py-2">{u.fullName || 'Chưa có tên'}</td>
+                    {filteredUsers.map((u: User) => (
+                      <tr key={u.id} className="hover:bg-green-50 transition text-gray-900 font-medium">
+                        <td className="border px-3 py-2">{u.fullName || u.username}</td>
                         <td className="border px-3 py-2">{u.username}</td>
                         <td className="border px-3 py-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            u.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
-                            u.role === 'TEACHER' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
+                          <span className={`inline-block px-2 py-1 rounded font-bold ${
+                            u.role === 'ADMIN' ? 'bg-red-100 text-red-700' :
+                            u.role === 'TEACHER' ? 'bg-blue-100 text-blue-700' :
+                            'bg-green-100 text-green-700'
                           }`}>
-                            {u.role}
+                            {u.role === 'ADMIN' ? 'Admin' :
+                             u.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'}
                           </span>
                         </td>
                         <td className="border px-3 py-2">
-                          <button onClick={()=>handleEdit(u)} className="text-indigo-600 hover:underline mr-2">Sửa</button>
-                          <button onClick={()=>handleDelete(u.id)} className="text-red-600 hover:underline">Xóa</button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditUser(u)}
+                              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(u.id)}
+                              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                            >
+                              Xóa
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>
           )}
-          {/* Modal thêm/sửa */}
+          </div>
+        )}
+
+        {/* User Modal */}
           {showModal && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl shadow-2xl p-8 min-w-[320px] border border-indigo-200">
-                <h3 className="font-semibold text-xl mb-4 text-indigo-700">{editUser?'Sửa':'Thêm'} người dùng</h3>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1 text-gray-900">Tên</label>
-                  <input className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={form.name} onChange={e=>setForm(f=>({...f, name:e.target.value}))} />
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-96 shadow-2xl border border-gray-200">
+              <h3 className="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                <span className="text-2xl">👤</span>
+                {editUser ? 'Sửa người dùng' : 'Thêm người dùng mới'}
+              </h3>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-700">Tên:</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Nhập tên đầy đủ"
+                />
                 </div>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1 text-gray-900">Username</label>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-700">Username:</label>
                   <input 
-                    className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2 w-full" 
+                  type="text"
                     value={form.username} 
-                    onChange={e=>setForm(f=>({...f, username:e.target.value}))} 
+                  onChange={(e) => setForm(prev => ({ ...prev, username: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Nhập username"
                   />
                 </div>
-                <div className="mb-5">
-                  <label className="block text-base font-bold mb-1 text-gray-900">Role</label>
-                  <select className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2 w-full" value={form.role} onChange={e=>setForm(f=>({...f, role:e.target.value}))}>
-                    <option value="">-- Chọn role --</option>
-                    <option value="ADMIN">ADMIN</option>
-                    <option value="TEACHER">TEACHER</option>
-                    <option value="STUDENT">STUDENT</option>
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2 text-gray-700">Vai trò:</label>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="STUDENT">Học sinh</option>
+                  <option value="TEACHER">Giáo viên</option>
+                  <option value="ADMIN">Admin</option>
                   </select>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={()=>setShowModal(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hủy</button>
-                  <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Lưu</button>
-                </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSaveUser}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-semibold shadow-lg"
+                >
+                  {editUser ? 'Cập nhật' : 'Thêm'}
+                </button>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 font-semibold shadow-lg"
+                >
+                  Hủy
+                </button>
               </div>
             </div>
-          )}
         </div>
       )}
-      {activeTab==='class' && (
-        <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border border-indigo-100">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-semibold text-2xl text-indigo-800">🏫 Danh sách lớp học</h2>
-            <div className="flex gap-2">
-              <button onClick={handleAddClass} className="px-5 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">+ Thêm lớp</button>
-              <button onClick={handleAddStudentToClass} className="px-5 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition">+ Thêm học sinh vào lớp</button>
+
+        {/* Class Management Tab */}
+        {activeTab === 'class' && (
+          <div className="mb-10 bg-white/90 rounded-xl shadow-lg p-6 border border-purple-100">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-purple-800 font-sans flex items-center gap-2">
+                🏫 Quản lý lớp học
+              </h2>
+              <button
+                className="px-4 py-2 bg-purple-500 text-white rounded-lg shadow hover:bg-purple-600 transition font-semibold"
+              >
+                + Thêm lớp học
+              </button>
             </div>
-          </div>
+            
           {classesLoading ? (
-            <div>Đang tải...</div>
-          ) : classesError ? (
-            <div className="text-red-600 bg-red-50 p-4 rounded-lg border border-red-200">
-              <p className="font-semibold">❌ Lỗi tải dữ liệu lớp học</p>
-              <p className="text-sm mt-1">Vui lòng thử lại sau.</p>
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2"></div>
+                <p>Đang tải danh sách lớp học...</p>
             </div>
+            ) : classesData?.findAllClasses?.length === 0 ? (
+              <div className="text-gray-500 text-center py-8">Chưa có lớp học nào.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border text-base mb-4 bg-white rounded-xl overflow-hidden shadow font-sans">
                 <thead>
-                  <tr className="bg-indigo-100 text-indigo-800 font-bold">
-                    <th className="border px-3 py-2">ID</th>
+                    <tr className="bg-purple-100 text-purple-800 font-bold">
                     <th className="border px-3 py-2">Tên lớp</th>
                     <th className="border px-3 py-2">Môn học</th>
                     <th className="border px-3 py-2">Giáo viên</th>
-                    <th className="border px-3 py-2">Học sinh</th>
+                      <th className="border px-3 py-2">Số học sinh</th>
                     <th className="border px-3 py-2">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {classesData?.getAllClasses?.map((c: any) => (
-                    <tr key={c.id} className="hover:bg-indigo-50 transition text-gray-900 font-medium">
-                      <td className="border px-3 py-2">{c.id}</td>
+                    {classesData?.findAllClasses?.map((c: Class) => (
+                      <tr key={c.id} className="hover:bg-purple-50 transition text-gray-900 font-medium">
                       <td className="border px-3 py-2">{c.className}</td>
                       <td className="border px-3 py-2">{c.subject}</td>
                       <td className="border px-3 py-2">
-                        {c.teacher ? (
-                          c.teacher.fullName || c.teacher.username
-                        ) : c.teacherId ? (
-                          <TeacherNameById teacherId={c.teacherId} />
-                        ) : (
-                          'Chưa có giáo viên'
-                        )}
+                          {c.teacherId ? <TeacherNameById teacherId={c.teacherId} /> : 'Chưa có giáo viên'}
                       </td>
+                        <td className="border px-3 py-2">{c.studentIds?.length || 0}</td>
                       <td className="border px-3 py-2">
-                        {c.students && c.students.length > 0 ? (
-                          c.students.map((s: any) => s.fullName || s.username).join(', ')
-                        ) : c.studentIds && c.studentIds.length > 0 ? (
-                          <StudentNamesByIds studentIds={c.studentIds} />
-                        ) : (
-                          'Chưa có học sinh'
-                        )}
-                      </td>
-                      <td className="border px-3 py-2">
-                        <button onClick={()=>handleEditClass(c)} className="text-indigo-600 hover:underline mr-2">Sửa</button>
-                        <button onClick={()=>handleDeleteClass(c.id)} className="text-red-600 hover:underline">Xóa</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {/* Modal thêm/sửa lớp */}
-          {showClassModal && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl shadow-2xl p-8 min-w-[320px] border border-indigo-200">
-                <h3 className="font-semibold text-xl mb-4 text-indigo-700">{editClass?'Sửa':'Thêm'} lớp học</h3>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1 text-gray-900">Tên lớp</label>
-                  <input className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={classForm.className} onChange={e=>setClassForm(f=>({...f, className:e.target.value}))} />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1 text-gray-900">Môn học</label>
-                  <input className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={classForm.subject} onChange={e=>setClassForm(f=>({...f, subject:e.target.value}))} />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1 text-gray-900">Chọn giáo viên (để trống nếu tạo cho chính mình)</label>
-                  <select 
-                    className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2 w-full"
-                    value={classForm.teacherId} 
-                    onChange={e=>setClassForm(f=>({...f, teacherId:e.target.value}))}
-                  >
-                    <option value="">-- Để trống để tự động gán --</option>
-                    {usersData?.findAllUsers?.filter((u: any) => u.role === 'TEACHER').map((u: any) => (
-                      <option key={u.id} value={u.id}>
-                        {u.fullName} ({u.username})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {/* Note: Student management moved to separate "Add Student to Class" feature */}
-                <div className="mb-5">
-                  <p className="text-sm text-gray-600">Học sinh sẽ được thêm vào lớp sau khi tạo lớp</p>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={()=>setShowClassModal(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hủy</button>
-                  <button onClick={handleSaveClass} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Lưu</button>
-                </div>
-              </div>
-            </div>
-          )}
-          {/* Modal thêm học sinh vào lớp */}
-          {showAddStudentModal && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl shadow-2xl p-8 min-w-[400px] border border-indigo-200">
-                <h3 className="font-semibold text-xl mb-4 text-indigo-700">Thêm học sinh vào lớp</h3>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1 text-gray-900">Chọn lớp</label>
-                  <select 
-                    className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2 w-full"
-                    value={addStudentForm.classId} 
-                    onChange={e=>setAddStudentForm(f=>({...f, classId:e.target.value}))}
-                  >
-                    <option value="">-- Chọn lớp --</option>
-                    {classesData?.getAllClasses?.map((c: any) => (
-                      <option key={c.id} value={c.id}>
-                        {c.className} - {c.subject}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-5">
-                  <label className="block text-base font-bold mb-1 text-gray-900">Chọn học sinh</label>
-                  <select 
-                    className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2 w-full"
-                    value={addStudentForm.studentId} 
-                    onChange={e=>setAddStudentForm(f=>({...f, studentId:e.target.value}))}
-                  >
-                    <option value="">-- Chọn học sinh --</option>
-                    {usersData?.findAllUsers?.filter((u: any) => u.role === 'STUDENT').map((u: any) => (
-                      <option key={u.id} value={u.id}>
-                        {u.fullName} ({u.username})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={()=>setShowAddStudentModal(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hủy</button>
-                  <button 
-                    onClick={handleSaveAddStudent} 
-                    disabled={!addStudentForm.classId || !addStudentForm.studentId}
-                    className={`px-4 py-2 rounded transition ${
-                      !addStudentForm.classId || !addStudentForm.studentId 
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    Thêm
+                          <div className="flex gap-2">
+                            <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">
+                              Sửa
+                            </button>
+                            <button className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm">
+                              Xóa
                   </button>
                 </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      {activeTab==='score' && (
-        <div className="mb-10 bg-white/90 rounded-xl shadow-lg p-6 border border-purple-100">
-          <h2 className="text-2xl font-semibold mb-4 text-purple-800 font-sans flex items-center gap-2">👤 Quản lý điểm</h2>
-          <div className="flex items-center gap-4 mb-4">
-            <button onClick={handleAddScore} className="px-5 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition">+ Thêm điểm</button>
-          </div>
-          {scoresLoading ? (
-            <div className="flex flex-col items-center py-8 text-lg text-gray-500"><span className="text-4xl mb-2">⏳</span>Đang tải điểm...</div>
-          ) : scoresError ? (
-            <div className="flex flex-col items-center py-8 text-lg text-red-500"><span className="text-4xl mb-2">❌</span>Lỗi tải dữ liệu điểm</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border text-lg mb-2 bg-white rounded-xl overflow-hidden shadow-lg">
-                <thead>
-                  <tr className="bg-purple-100 text-purple-800 font-bold">
-                    <th className="border px-4 py-3">ID</th>
-                    <th className="border px-4 py-3">Học sinh</th>
-                    <th className="border px-4 py-3">Lớp</th>
-                    <th className="border px-4 py-3">Môn</th>
-                    <th className="border px-4 py-3">Điểm</th>
-                    <th className="border px-4 py-3">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {scoresData?.score?.map((s: any) => (
-                    <tr key={s.id} className="hover:bg-purple-50 transition text-gray-900 font-medium">
-                      <td className="border px-4 py-2">{s.id}</td>
-                      <td className="border px-4 py-2">{s.studentId}</td>
-                      <td className="border px-4 py-2">{s.classId}</td>
-                      <td className="border px-4 py-2">{s.subject}</td>
-                      <td className="border px-4 py-2">
-                        <span className={`inline-block px-2 py-1 rounded font-bold ${s.score >= 8 ? 'bg-green-100 text-green-700' : s.score >= 5 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{s.score}</span>
-                      </td>
-                      <td className="border px-4 py-2">
-                        <button onClick={()=>handleEditScore(s)} className="text-indigo-600 hover:underline mr-2">Sửa</button>
-                        <button onClick={()=>handleDeleteScore(s.id)} className="text-red-600 hover:underline">Xóa</button>
                       </td>
                     </tr>
                   ))}
@@ -603,130 +577,11 @@ export default function AdminDashboard() {
               </table>
             </div>
           )}
-          {/* Modal thêm/sửa điểm */}
-          {showScoreModal && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl shadow-2xl p-8 min-w-[320px] border border-indigo-200">
-                <h3 className="font-semibold text-xl mb-4 text-indigo-700">{editScore?'Sửa':'Thêm'} điểm</h3>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1">Học sinh (ID)</label>
-                  <input className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={scoreForm.studentId} onChange={e=>setScoreForm(f=>({...f, studentId:e.target.value}))} />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1">Lớp (ID)</label>
-                  <input className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={scoreForm.classId} onChange={e=>setScoreForm(f=>({...f, classId:e.target.value}))} />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1">Môn</label>
-                  <input className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={scoreForm.subject} onChange={e=>setScoreForm(f=>({...f, subject:e.target.value}))} />
-                </div>
-                <div className="mb-5">
-                  <label className="block text-base font-bold mb-1">Điểm</label>
-                  <input type="number" className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={scoreForm.score} onChange={e=>setScoreForm(f=>({...f, score:Number(e.target.value)}))} />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={()=>setShowScoreModal(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hủy</button>
-                  <button onClick={handleSaveScore} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Lưu</button>
-                </div>
-              </div>
             </div>
           )}
-        </div>
-      )}
-      {activeTab==='attendance' && (
-        <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border border-indigo-100">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-semibold text-2xl text-indigo-800">📝 Bảng điểm danh</h2>
-            <button onClick={handleAddAttendance} className="px-5 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">+ Thêm điểm danh</button>
-          </div>
-          {attendanceLoading ? (
-            <div>Đang tải...</div>
-          ) : attendanceError ? (
-            <div className="text-red-600">Lỗi tải dữ liệu điểm danh</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border text-lg mb-4 bg-white rounded-xl overflow-hidden shadow-lg">
-                <thead>
-                  <tr className="bg-indigo-100 text-indigo-800 font-bold">
-                    <th className="border px-4 py-3">ID</th>
-                    <th className="border px-4 py-3">Lớp</th>
-                    <th className="border px-4 py-3">Ngày</th>
-                    <th className="border px-4 py-3">Bản ghi</th>
-                    <th className="border px-4 py-3">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendanceData?.attendance?.map((a: any) => (
-                    <tr key={a.id} className="hover:bg-indigo-50 transition text-gray-900 font-medium">
-                      <td className="border px-4 py-2">{a.id}</td>
-                      <td className="border px-4 py-2">{a.classId}</td>
-                      <td className="border px-4 py-2">{a.date?.slice(0,10)}</td>
-                      <td className="border px-4 py-2">{a.records?.map((r: any) => `${r.studentId}: ${r.status}`).join(', ')}</td>
-                      <td className="border px-4 py-2">
-                        <button onClick={()=>handleEditAttendance(a)} className="text-indigo-600 hover:underline mr-2">Sửa</button>
-                        <button onClick={()=>handleDeleteAttendance(a.id)} className="text-red-600 hover:underline">Xóa</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {/* Modal thêm/sửa điểm danh */}
-          {showAttendanceModal && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl shadow-2xl p-8 min-w-[320px] border border-indigo-200">
-                <h3 className="font-semibold text-xl mb-4 text-indigo-700">{editAttendance?'Sửa':'Thêm'} điểm danh</h3>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1">Lớp (ID)</label>
-                  <input className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={attendanceForm.classId} onChange={e=>setAttendanceForm(f=>({...f, classId:e.target.value}))} />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-base font-bold mb-1">Ngày</label>
-                  <input type="date" className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={attendanceForm.date} onChange={e=>setAttendanceForm(f=>({...f, date:e.target.value}))} />
-                </div>
-                <div className="mb-5">
-                  <label className="block text-base font-bold mb-1">Bản ghi (studentId:status, phân cách bằng dấu phẩy)</label>
-                  <input className="border-2 border-indigo-400 rounded-lg p-3 text-base text-gray-900 placeholder-gray-500 font-medium focus:ring-2 focus:ring-indigo-400 outline-none mb-2" value={attendanceForm.records} onChange={e=>setAttendanceForm(f=>({...f, records:e.target.value}))} />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={()=>setShowAttendanceModal(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Hủy</button>
-                  <button onClick={handleSaveAttendance} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Lưu</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+
+
+      </main>
     </div>
   );
-}
-
-// Thêm component phụ để lấy tên giáo viên theo id
-function TeacherNameById({ teacherId }: { teacherId: string }) {
-  const { data, loading, error } = useQuery(FIND_USER_BY_ID_QUERY, { variables: { id: teacherId } });
-  if (loading) return <span>Đang tải...</span>;
-  if (error || !data?.findById) return <span>Chưa có giáo viên</span>;
-  return <span>{data.findById.fullName || data.findById.username}</span>;
-}
-
-// Thêm component phụ để lấy tên học sinh theo ids
-function StudentNamesByIds({ studentIds }: { studentIds: string[] }) {
-  const names: string[] = [];
-  
-  return (
-    <span>
-      {studentIds.map((studentId, index) => (
-        <StudentNameById key={studentId} studentId={studentId} isLast={index === studentIds.length - 1} />
-      ))}
-    </span>
-  );
-}
-
-function StudentNameById({ studentId, isLast }: { studentId: string; isLast: boolean }) {
-  const { data, loading, error } = useQuery(FIND_USER_BY_ID_QUERY, { variables: { id: studentId } });
-  if (loading) return <span>Đang tải...</span>;
-  if (error || !data?.findById) return <span>Unknown</span>;
-  const name = data.findById.fullName || data.findById.username;
-  return <span>{name}{!isLast && ', '}</span>;
 }
